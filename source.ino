@@ -8,6 +8,12 @@ int TOGGLE = 2;
 
 int value;
 
+
+#define maxFreqShift 5000
+int freqShiftArray[maxFreqShift];
+unsigned int selectedFreqShift = 0;
+unsigned int freqShiftCounter = 0;
+
 #define maxDelay 20000
 int delayArray[maxDelay];
 unsigned int selectedDelay = 0;
@@ -70,18 +76,34 @@ void loop()
 	POT3 = ADC->ADC_CDR[13];
 }
 
+int processFreqShift(int value)
+{
+	selectedFreqShift = map(POT1, 0, 4096, 0, maxFreqShift);
+	freqShiftArray[freqShiftCounter] = value;
+	freqShiftCounter = (freqShiftCounter + 1) % selectedFreqShift;
+	return freqShiftArray[freqShiftCounter];
+}
+
+int processDelay(int value)
+{
+	selectedDelay = map(POT0, 0, 4096, 1000, maxDelay);
+	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
+	delayCounter = (delayCounter + 1) % selectedDelay;
+	return delayArray[delayCounter];
+}
+
+
+
 void TC4_Handler()
 {
 	// We need to get the status to clear it and allow the interrupt to fire again
 	TC_GetStatus(TC1, 1);
 
-	value = in_ADC0 > 10 ? in_ADC0 : 0 - in_ADC1 > 10 ? in_ADC1 : 0;
+	value = in_ADC0 - in_ADC1;
 
-	selectedDelay = map(POT0, 0, 4096, 1, maxDelay);
-	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
-	delayCounter = (delayCounter + 1) % selectedDelay;
 
-	value = delayArray[delayCounter];
+	value = processFreqShift(value);
+	//value = processDelay(value);
 
 	//Write the DACs
 	dacc_set_channel_selection(DACC_INTERFACE, 0);						 //select DAC channel 0
