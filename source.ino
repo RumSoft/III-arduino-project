@@ -78,9 +78,9 @@ void loop()
 int processFreqShift(int value)
 {
 	selectedFreqShift = map(POT1 >> 5, 0, 128, 0, maxFreqShift);
-	if(selectedFreqShift <= 0)
+	if (selectedFreqShift <= 0)
 		return value;
-	freqShiftArray[freqShiftCounter] =  value;
+	freqShiftArray[freqShiftCounter] = value;
 	freqShiftCounter = (freqShiftCounter + 1) % selectedFreqShift;
 	return freqShiftArray[freqShiftCounter];
 }
@@ -99,8 +99,6 @@ void TC4_Handler()
 	TC_GetStatus(TC1, 1);
 
 	value = in_ADC0 - in_ADC1;
-
-
 
 	// value = processChorus(value);
 	value = processFreqShift(value);
