@@ -1,11 +1,6 @@
 int in_ADC0, in_ADC1;
 int out_DAC0, out_DAC1;
-
 int POT0, POT1, POT2, POT3;
-int LED = 13;
-int FOOTSWITCH = 7;
-int TOGGLE = 2;
-
 int value;
 
 #define maxFreqShift 500
@@ -13,10 +8,25 @@ int freqShiftArray[maxFreqShift];
 unsigned int selectedFreqShift = 0;
 unsigned int freqShiftCounter = 0;
 
-#define maxDelay 20000
+#define maxDelay 15000
 int delayArray[maxDelay];
 unsigned int selectedDelay = 0;
 unsigned int delayCounter = 0;
+
+#define maxFlanger 2646
+#define minFlanger 1764
+#define midFlanger 2205
+int flangerArray[maxFlanger];
+unsigned int flangerCounter = 0;
+unsigned int selectedFlanger = 0;
+
+float sineTable[maxFlanger];
+
+void generateSineTable()
+{
+	for (int i = 0; i < maxFlanger; i++)
+		sineTable[i] = cos(i * 2 * PI / maxFlanger);
+}
 
 //c == 0? if value > 0 then return value
 //c == 1? if value < 0 then return -value
@@ -57,6 +67,8 @@ void setup()
 	//enable DAC
 	analogWrite(DAC0, 0);
 	analogWrite(DAC1, 0);
+
+	pinMode(LED, OUTPUT);
 }
 
 void loop()
@@ -85,12 +97,27 @@ int processFreqShift(int value)
 	return freqShiftArray[freqShiftCounter];
 }
 
-int processDelay(int value)
+int processDelay(int value, int delay)
 {
-	selectedDelay = map(POT0 >> 5, 0, 128, 1000, maxDelay);
+	if ((POT0 >> 5) <= 1)
+		return value;
 	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
-	delayCounter = (delayCounter + 1) % selectedDelay;
+	delayCounter = (delayCounter + 1) % delay;
 	return delayArray[delayCounter];
+}
+
+int processFlanger(int value)
+{
+	selectedFlanger = map(POT1 >> 5, 0, 128, 10, maxFlanger);
+	if ((POT1 >> 5) <= 1)
+		return value;
+
+	flangerArray[flangerCounter] = value;
+	flangerCounter = (flangerCounter + 1) % (selectedFlanger + 1);
+	if(flangerCounter >= maxFlanger)
+	flangerCounter = 0;
+
+	return flangerArray[(flangerCounter + int((maxFlanger/10) * sineTable[flangerCounter])) % maxFlanger];
 }
 
 void TC4_Handler()
@@ -100,9 +127,11 @@ void TC4_Handler()
 
 	value = in_ADC0 - in_ADC1;
 
-	// value = processChorus(value);
-	value = processFreqShift(value);
-	//value = processDelay(value);
+	selectedDelay = map(POT0 >> 5, 0, 128, 1000, maxDelay);
+
+	value = processFlanger(value);
+	//value = processFreqShift(value);
+	value = processDelay(value, selectedDelay);
 
 	//Write the DACs
 	dacc_set_channel_selection(DACC_INTERFACE, 0);						 //select DAC channel 0
