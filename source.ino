@@ -8,8 +8,7 @@ int TOGGLE = 2;
 
 int value;
 
-
-#define maxFreqShift 5000
+#define maxFreqShift 500
 int freqShiftArray[maxFreqShift];
 unsigned int selectedFreqShift = 0;
 unsigned int freqShiftCounter = 0;
@@ -78,21 +77,21 @@ void loop()
 
 int processFreqShift(int value)
 {
-	selectedFreqShift = map(POT1, 0, 4096, 0, maxFreqShift);
-	freqShiftArray[freqShiftCounter] = value;
+	selectedFreqShift = map(POT1 >> 5, 0, 128, 0, maxFreqShift);
+	if(selectedFreqShift <= 0)
+		return value;
+	freqShiftArray[freqShiftCounter] =  value;
 	freqShiftCounter = (freqShiftCounter + 1) % selectedFreqShift;
 	return freqShiftArray[freqShiftCounter];
 }
 
 int processDelay(int value)
 {
-	selectedDelay = map(POT0, 0, 4096, 1000, maxDelay);
+	selectedDelay = map(POT0 >> 5, 0, 128, 1000, maxDelay);
 	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
 	delayCounter = (delayCounter + 1) % selectedDelay;
 	return delayArray[delayCounter];
 }
-
-
 
 void TC4_Handler()
 {
@@ -102,6 +101,8 @@ void TC4_Handler()
 	value = in_ADC0 - in_ADC1;
 
 
+
+	// value = processChorus(value);
 	value = processFreqShift(value);
 	//value = processDelay(value);
 
