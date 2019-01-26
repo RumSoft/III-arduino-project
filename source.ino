@@ -87,13 +87,12 @@ void loop()
 	POT3 = ADC->ADC_CDR[13];
 }
 
-int processFreqShift(int value)
+int processFreqShift(int value, int shift)
 {
-	selectedFreqShift = map(POT1 >> 5, 0, 128, 0, maxFreqShift);
 	if (selectedFreqShift <= 0)
 		return value;
 	freqShiftArray[freqShiftCounter] = value;
-	freqShiftCounter = (freqShiftCounter + 1) % selectedFreqShift;
+	freqShiftCounter = (freqShiftCounter + 1) % shift;
 	return freqShiftArray[freqShiftCounter];
 }
 
@@ -120,22 +119,30 @@ int processFlanger(int value)
 	return flangerArray[(flangerCounter + int((maxFlanger/10) * sineTable[flangerCounter])) % maxFlanger];
 }
 
+void updatePots() {
+	selectedDelay = map(POT0 >> 5, 0, 128, 0, maxDelay);
+	selectedFreqShift = map(POT1 >> 5, 0, 128, 0, maxFreqShift);
+}
+
+void writeOutput(int value){
+	dacc_set_channel_selection(DACC_INTERFACE, 0);
+	dacc_write_conversion_data(DACC_INTERFACE, separateValue(value, 1)); 
+	dacc_set_channel_selection(DACC_INTERFACE, 1);
+	dacc_write_conversion_data(DACC_INTERFACE, separateValue(value, 0));
+}
+
 void TC4_Handler()
 {
 	// We need to get the status to clear it and allow the interrupt to fire again
 	TC_GetStatus(TC1, 1);
-
 	value = in_ADC0 - in_ADC1;
 
-	selectedDelay = map(POT0 >> 5, 0, 128, 1000, maxDelay);
-
+	updatePots();
+	
 	value = processFlanger(value);
 	//value = processFreqShift(value);
 	value = processDelay(value, selectedDelay);
 
-	//Write the DACs
-	dacc_set_channel_selection(DACC_INTERFACE, 0);						 //select DAC channel 0
-	dacc_write_conversion_data(DACC_INTERFACE, separateValue(value, 1)); //write on DAC
-	dacc_set_channel_selection(DACC_INTERFACE, 1);						 //select DAC channel 1
-	dacc_write_conversion_data(DACC_INTERFACE, separateValue(value, 0)); //write on DAC
+	writeOutput(value);
+
 }
