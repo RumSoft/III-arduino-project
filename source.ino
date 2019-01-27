@@ -3,26 +3,38 @@ int out_DAC0, out_DAC1;
 int POT0, POT1, POT2, POT3;
 int value;
 
+//freqshift
 #define maxFreqShift 500
 int freqShiftArray[maxFreqShift];
 unsigned int selectedFreqShift = 0;
 unsigned int freqShiftCounter = 0;
 
+
+//delay
 #define maxDelay 15000
 int delayArray[maxDelay];
 unsigned int selectedDelay = 0;
 unsigned int delayCounter = 0;
 
-#define maxFlanger 2646
-#define minFlanger 1764
-#define midFlanger 2205
-int flangerArray[maxFlanger];
-unsigned int flangerCounter = 0;
-unsigned int selectedFlanger = 0;
 
-unsigned int lfoMax = 44100;
-unsigned int lfoVal = 0;
-int lfoChange = 1;
+#define MAX_DELAY 80
+#define no_samples 8000 
+int   DELAY[MAX_DELAY+2];
+int   Delay2 = 0;
+float delay_sr = 0;
+int   delay_int = 0;
+float frac = 0;
+float Seno_table[no_samples];
+int n,j=0;
+ 
+ 
+void cria_seno() 
+{
+  for( n=0; n<no_samples; n++) 
+    Seno_table[n] = (0.99 * cos(((2.0*PI)/no_samples)*n));
+}
+
+
 
 //c == 0? if value > 0 then return value
 //c == 1? if value < 0 then return -value
@@ -35,6 +47,7 @@ inline int separateValue(int val, int c)
 
 void setup()
 {
+	 cria_seno();
 	/* turn on the timer clock in the power management controller */
 	pmc_set_writeprotect(false);
 	pmc_enable_periph_clk(ID_TC4);
@@ -95,7 +108,7 @@ int processFreqShift(int value, int shift)
 
 int processDelay(int value, int delay)
 {
-	if ((POT0 >> 5) <= 1)
+	if ((POT3 >> 5) <= 1)
 		return value;
 
 	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
@@ -103,24 +116,54 @@ int processDelay(int value, int delay)
 	return delayArray[delayCounter];
 }
 
+inline int between(int val, int a, int b)
+{
+	if (val < a)
+		return a;
+	if (val > b)
+		return b;
+	return val;
+}
+
+inline float betweenF(float val, float a, float b)
+{
+	if (val < a)
+		return a;
+	if (val > b)
+		return b;
+	return val;
+}
+
+
 int processFlanger(int value)
 {
-	flangerCounter = (flangerCounter + 1) % maxFlanger;
+	POT0 = map(POT0 >> 2, 0, 1024, 1, 44); //empirical adjusts
+	Delay2 = POT0 / 2;
 
-	lfoVal += lfoChange;
-	if (lfoVal >= lfoMax)
-		lfoChange = -1;
-	if (lfoVal <= 0)
-		lfoChange = 1;
+	for (int u = 0; u <= POT0; u++)
+		DELAY[POT0 + 1 - u] = DELAY[POT0 - u];
 
-	return processDelay(value, 1700 + (lfoChange >> 6));
+	DELAY[0] = value;
+
+	POT1 = map(POT1 >> 2, 0, 1024, 1, 16); // empirical adjusts
+
+	delay_sr = Delay2 - Delay2 * Seno_table[(j * POT1) / 20];
+	delay_int = int(delay_sr);
+	frac = delay_sr - delay_int;
+
+	frac = betweenF(frac, 0.01, 0.99);
+
+	j++;
+	if (j * POT1 / 20 >= no_samples)
+		j = 0;
+
+	return (DELAY[delay_int + 2] * frac + DELAY[delay_int] * (1 - frac));
 }
 
 void updatePots()
 {
-	selectedDelay = map(POT0 >> 5, 0, 128, 0, maxDelay);
-	selectedFlanger = map(POT1 >> 5, 0, 128, 0, maxFlanger);
-	selectedFreqShift = map(POT1 >> 5, 0, 128, 0, maxFreqShift);
+	selectedDelay = map(POT2 >> 5, 0, 128, 0, maxDelay);
+	selectedFreqShift = map(POT0 >> 5, 0, 128, 0, maxFreqShift);
 }
 
 void writeOutput(int value)
@@ -140,8 +183,8 @@ void TC4_Handler()
 	updatePots();
 
 	value = processFlanger(value);
-	//value = processFreqShift(value);
-	value = processDelay(value, selectedDelay);
+	//value = processFreqShift(value, selectedFreqShift);
+	//value = processDelay(value, selectedDelay);
 
 	writeOutput(value);
 }
