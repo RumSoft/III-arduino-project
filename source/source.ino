@@ -20,12 +20,13 @@ unsigned int delayCounter = 0;
 
 #define MAX_DELAY 80
 #define no_samples 8000
-int DELAY[MAX_DELAY + 2];
+#define chorusOffset 2
+int DELAY[MAX_DELAY + chorusOffset];
 int Delay2 = 0;
 float delay_sr = 0;
 int delay_int = 0;
 float frac = 0;
-int n, j = 0;
+int j = 0;
 
 
 void setup()
@@ -101,14 +102,13 @@ int processFlanger(int value)
 	if (j * POT1 / 20 >= no_samples)
 		j = 0;
 
-	return (DELAY[delay_int + 2] * frac + DELAY[delay_int] * (1 - frac));
+	return (DELAY[delay_int + chorusOffset] * frac + DELAY[delay_int] * (1 - frac));
 }
 
 
 
 void TC4_Handler()
 {
-	
 
 	updateValues();
 
