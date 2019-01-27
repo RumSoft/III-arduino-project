@@ -14,17 +14,6 @@ void setup()
 	Serial.begin(4800);
 }
 
-void updateValues()
-{
-  TC_GetStatus(TC1, 1); //DAC
-
-  value = in_ADC0 - in_ADC1;
-
-  selectedDelay = map(POT3 >> 5, 0, 128, 0, maxDelay);
-  selectedFreqShift = map(POT2 >> 3, 0, 512, 0, maxFreqShift);
-  selectedChorusSpeed = map(POT1 >> 5, 0, 128, 0, maxChorusSpeed);
-  selectedChorusDepth = map(POT0 >> 5, 0, 128, 0, maxChorusDepth);
-}
 
 void loop()
 {
@@ -42,14 +31,24 @@ void loop()
 	POT3 = ADC->ADC_CDR[13];
 }
 
+void updateValues()
+{
+  TC_GetStatus(TC1, 1); //DAC
 
+  value = in_ADC0 - in_ADC1;
+
+  selectedDelay = map(POT3 >> 5, 0, 128, 0, maxDelay);
+  selectedFreqShift = map(POT2 >> 3, 0, 512, 0, maxFreqShift);
+  //selectedChorusSpeed = map(POT1 >> 5, 0, 128, 0, maxChorusSpeed);
+  //selectedChorusDepth = map(POT0 >> 5, 0, 128, 0, maxChorusDepth);
+}
 
 void TC4_Handler()
 {
 
 	updateValues();
 
-	value = processChorus(value);
+	//value = processChorus(value, POT0, POT1);
 	value = processFreqShift(value, selectedFreqShift);
 	value = processDelay(value, selectedDelay);
 
