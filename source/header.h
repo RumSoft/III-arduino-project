@@ -57,7 +57,7 @@ void my_setup() {
 	//ADC Configuration
 	ADC->ADC_MR |= 0x80;	// DAC in free running mode.
 	ADC->ADC_CR = 2;		// Starts ADC conversion.
-	ADC->ADC_CHER = 0x1CC0; // Enable ADC channels 0 and 1.
+	ADC->ADC_CHER = 0x3CC0; // Enable ADC channels 0 and 1.
 
 	//enable DAC
 	analogWrite(DAC0, 0);

@@ -18,26 +18,43 @@ int delayArray[maxDelay];
 unsigned int selectedDelay = 0;
 unsigned int delayCounter = 0;
 
-#define MAX_DELAY 80
-#define no_samples 8000
-#define chorusOffset 2
-int DELAY[MAX_DELAY + chorusOffset];
-int Delay2 = 0;
-float delay_sr = 0;
-int delay_int = 0;
-float frac = 0;
-int j = 0;
 
+// #define maxChorusSpeed 30
+// #define maxChorusDepth 80
+// unsigned int selectedChorusSpeed = 0;
+// unsigned int selectedChorusDepth = 0;
+
+// #define MAX_DELAY 80
+// #define chorusOffset 2
+// int DELAY[MAX_DELAY + chorusOffset];
+// int Delay2 = 0;
+// float delay_sr = 0;
+// int delay_int = 0;
+// float frac = 0;
+// int j = 0;
 
 void setup()
 {
 	my_setup();
 	pinMode(LED_BUILTIN, OUTPUT);
+	Serial.begin(4800);
+}
+
+void updateValues()
+{
+  TC_GetStatus(TC1, 1); //DAC
+
+  value = in_ADC0 - in_ADC1;
+
+  selectedDelay = map(POT3 >> 5, 0, 128, 0, maxDelay);
+  selectedFreqShift = map(POT2 >> 5, 0, 128, 0, maxFreqShift);
+  // selectedChorusSpeed = map(POT1 >> 5, 0, 128, 0, maxChorusSpeed);
+  // selectedChorusDepth = map(POT0 >> 5, 0, 128, 0, maxChorusDepth);
 }
 
 void loop()
 {
-	while ((ADC->ADC_ISR & 0x1CC0) != 0x1CC0)
+	while ((ADC->ADC_ISR & 0x3CC0) != 0x3CC0)
 		; // read & wait for ADC
 
 	//read ADC
@@ -51,71 +68,57 @@ void loop()
 	POT3 = ADC->ADC_CDR[13];
 }
 
-void updateValues()
-{
-	TC_GetStatus(TC1, 1); //DAC
-	value = in_ADC0 - in_ADC1;
 
-	selectedDelay = map(POT2 >> 5, 0, 128, 0, maxDelay);
-	selectedFreqShift = map(POT0 >> 5, 0, 128, 0, maxFreqShift);
-}
 
-int processFreqShift(int value, int shift)
+int processFreqShift(int value, int _shift)
 {
-	if ((POT1 >> 5) <= 1)
-		return value;
+	if(_shift < maxFreqShift / 100)
+		return value; 
 
 	freqShiftArray[freqShiftCounter] = value;
-	freqShiftCounter = (freqShiftCounter + 1) % shift;
-	return freqShiftArray[freqShiftCounter];
+	freqShiftCounter = (freqShiftCounter + 1) % _shift;
+	return (freqShiftArray[freqShiftCounter] + value)>>1; 
 }
 
-int processDelay(int value, int delay)
+int processDelay(int value, int _delay)
 {
-	if ((POT3 >> 5) <= 1)
+	if(_delay < maxDelay/100)
 		return value;
 
 	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
-	delayCounter = (delayCounter + 1) % delay;
+	delayCounter = (delayCounter + 1) % _delay;
 	return delayArray[delayCounter];
 }
 
-int processFlanger(int value)
-{
-	POT0 = map(POT0 >> 2, 0, 1024, 1, 45); //empirical adjusts
-	Delay2 = POT0 / 2;
+// int processFlanger(int value, int depth, int speed)
+// {
+// 	Delay2 = depth/2;
 
-	for (int u = 0; u <= POT0; u++)
-		DELAY[POT0 + 1 - u] = DELAY[POT0 - u];
+// 	for (int u = 0; u <= depth; u++)
+// 		DELAY[depth + 1 - u] = DELAY[depth - u];
 
-	DELAY[0] = value;
+// 	DELAY[0] = value;
 
-	POT1 = map(POT1 >> 2, 0, 1024, 1, 16); // empirical adjusts
+// 	POT1 = map(POT1 >> 2, 0, 1024, 1, 30); // empirical adjusts
 
-	delay_sr = Delay2 - Delay2 * sinf_8k[(j * POT1) / 20];
-	delay_int = int(delay_sr);
-	frac = delay_sr - delay_int;
+// 	delay_sr = Delay2 - Delay2 * sinf_8k[(j * POT1) / 20];
+// 	frac = betweenF(delay_sr - int(delay_sr), 0.01, 0.99);
 
-	frac = betweenF(frac, 0.01, 0.99);
+// 	j++;
+// 	if (j * POT1 / 20 >= sine_samples)
+// 		j = 0;
 
-	j++;
-	if (j * POT1 / 20 >= no_samples)
-		j = 0;
-
-	return (DELAY[delay_int + chorusOffset] * frac + DELAY[delay_int] * (1 - frac));
-}
-
-
+// 	return (DELAY[int(delay_sr) + chorusOffset] * frac + DELAY[int(delay_sr)] * (1 - frac));
+// }
 
 void TC4_Handler()
 {
 
 	updateValues();
 
-	value = processFlanger(value);
-	//value = processFreqShift(value, selectedFreqShift);
-	//value = processDelay(value, selectedDelay);
+	//value = processFlanger(value, selectedChorusDepth, selectedChorusSpeed);
+	value = processFreqShift(value, selectedFreqShift);
+	value = processDelay(value, selectedDelay);
 
 	writeOutput(value);
 }
-
