@@ -20,13 +20,9 @@ int flangerArray[maxFlanger];
 unsigned int flangerCounter = 0;
 unsigned int selectedFlanger = 0;
 
-float sineTable[maxFlanger];
-
-void generateSineTable()
-{
-	for (int i = 0; i < maxFlanger; i++)
-		sineTable[i] = cos(i * 2 * PI / maxFlanger);
-}
+unsigned int lfoMax = 44100;
+unsigned int lfoVal = 0;
+int lfoChange = 1;
 
 //c == 0? if value > 0 then return value
 //c == 1? if value < 0 then return -value
@@ -68,7 +64,7 @@ void setup()
 	analogWrite(DAC0, 0);
 	analogWrite(DAC1, 0);
 
-	pinMode(LED, OUTPUT);
+	pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop()
@@ -89,8 +85,9 @@ void loop()
 
 int processFreqShift(int value, int shift)
 {
-	if (selectedFreqShift <= 0)
+	if ((POT1 >> 5) <= 1)
 		return value;
+
 	freqShiftArray[freqShiftCounter] = value;
 	freqShiftCounter = (freqShiftCounter + 1) % shift;
 	return freqShiftArray[freqShiftCounter];
@@ -100,6 +97,7 @@ int processDelay(int value, int delay)
 {
 	if ((POT0 >> 5) <= 1)
 		return value;
+
 	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
 	delayCounter = (delayCounter + 1) % delay;
 	return delayArray[delayCounter];
@@ -107,26 +105,28 @@ int processDelay(int value, int delay)
 
 int processFlanger(int value)
 {
-	selectedFlanger = map(POT1 >> 5, 0, 128, 10, maxFlanger);
-	if ((POT1 >> 5) <= 1)
-		return value;
+	flangerCounter = (flangerCounter + 1) % maxFlanger;
 
-	flangerArray[flangerCounter] = value;
-	flangerCounter = (flangerCounter + 1) % (selectedFlanger + 1);
-	if(flangerCounter >= maxFlanger)
-	flangerCounter = 0;
+	lfoVal += lfoChange;
+	if (lfoVal >= lfoMax)
+		lfoChange = -1;
+	if (lfoVal <= 0)
+		lfoChange = 1;
 
-	return flangerArray[(flangerCounter + int((maxFlanger/10) * sineTable[flangerCounter])) % maxFlanger];
+	return processDelay(value, 1700 + (lfoChange >> 6));
 }
 
-void updatePots() {
+void updatePots()
+{
 	selectedDelay = map(POT0 >> 5, 0, 128, 0, maxDelay);
+	selectedFlanger = map(POT1 >> 5, 0, 128, 0, maxFlanger);
 	selectedFreqShift = map(POT1 >> 5, 0, 128, 0, maxFreqShift);
 }
 
-void writeOutput(int value){
+void writeOutput(int value)
+{
 	dacc_set_channel_selection(DACC_INTERFACE, 0);
-	dacc_write_conversion_data(DACC_INTERFACE, separateValue(value, 1)); 
+	dacc_write_conversion_data(DACC_INTERFACE, separateValue(value, 1));
 	dacc_set_channel_selection(DACC_INTERFACE, 1);
 	dacc_write_conversion_data(DACC_INTERFACE, separateValue(value, 0));
 }
@@ -138,11 +138,10 @@ void TC4_Handler()
 	value = in_ADC0 - in_ADC1;
 
 	updatePots();
-	
+
 	value = processFlanger(value);
 	//value = processFreqShift(value);
 	value = processDelay(value, selectedDelay);
 
 	writeOutput(value);
-
 }
