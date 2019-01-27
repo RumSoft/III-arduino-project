@@ -1,4 +1,5 @@
 #include "header.h"
+#include "variables.h"
 
 int in_ADC0, in_ADC1;
 int out_DAC0, out_DAC1;
@@ -24,20 +25,11 @@ int Delay2 = 0;
 float delay_sr = 0;
 int delay_int = 0;
 float frac = 0;
-float Seno_table[no_samples];
 int n, j = 0;
-
-void generate_sine()
-{
-	for (n = 0; n < no_samples; n++)
-		Seno_table[n] = (0.99 * cos(((2.0 * PI) / no_samples) * n));
-}
-
 
 
 void setup()
 {
-	generate_sine();
 	my_setup();
 	pinMode(LED_BUILTIN, OUTPUT);
 }
@@ -99,7 +91,7 @@ int processFlanger(int value)
 
 	POT1 = map(POT1 >> 2, 0, 1024, 1, 16); // empirical adjusts
 
-	delay_sr = Delay2 - Delay2 * Seno_table[(j * POT1) / 20];
+	delay_sr = Delay2 - Delay2 * sinf_8k[(j * POT1) / 20];
 	delay_int = int(delay_sr);
 	frac = delay_sr - delay_int;
 
