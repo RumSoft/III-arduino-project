@@ -7,13 +7,20 @@ int out_DAC0, out_DAC1;
 int POT0, POT1, POT2, POT3;
 int value;
 
+#define MAX_DELAY 80
+int DELAY[MAX_DELAY + 2] = {0};
+int Delay2 = 0;
+float delay_sr = 0;
+int delay_int = 0;
+float frac = 0;
+int n, j = 0;
+
 void setup()
 {
 	my_setup();
 	pinMode(LED_BUILTIN, OUTPUT);
 	Serial.begin(4800);
 }
-
 
 void loop()
 {
@@ -29,18 +36,38 @@ void loop()
 	POT1 = ADC->ADC_CDR[11];
 	POT2 = ADC->ADC_CDR[12];
 	POT3 = ADC->ADC_CDR[13];
+
+	POT0 = map(POT0 >> 2, 0, 1024, 1, MAX_DELAY); //depth
+	POT1 = map(POT1 >> 2, 0, 1024, 1, 4); //speed
+
+	Delay2 = POT0 / 2;
+	for (int u = 0; u <= POT0; u++)
+		DELAY[POT0 + 1 - u] = DELAY[POT0 - u];
+	DELAY[0] = in_ADC0 - in_ADC1;
+
+	delay_sr = Delay2 - Delay2 * sinf_8k[j * POT1];
+	delay_int = int(delay_sr);
+	frac = delay_sr - delay_int;
+	if (frac = 0)
+		frac = 0.01; // Ajusts
+	if (frac = 1)
+		frac = 0.99; //
+
+	j++;
+	if (j * POT1 >= sine_samples)
+		j = 0;
+
+	value = (DELAY[delay_int + 2] * frac + DELAY[delay_int] * (1 - frac));
 }
 
 void updateValues()
 {
-  TC_GetStatus(TC1, 1); //DAC
+	TC_GetStatus(TC1, 1); //DAC
 
-  value = in_ADC0 - in_ADC1;
+	//   value = in_ADC0 - in_ADC1;
 
-  selectedDelay = map(POT3 >> 5, 0, 128, 0, maxDelay);
-  selectedFreqShift = map(POT2 >> 3, 0, 512, 0, maxFreqShift);
-  selectedChorusSpeed = map(POT1 >> 5, 0, 128, 0, maxChorusSpeed);
-  selectedChorusDepth = map(POT0 >> 5, 0, 128, 0, maxChorusDepth);
+	selectedDelay = map(POT3 >> 5, 0, 128, 0, maxDelay);
+	selectedFreqShift = map(POT2 >> 3, 0, 512, 0, maxFreqShift);
 }
 
 void TC4_Handler()
