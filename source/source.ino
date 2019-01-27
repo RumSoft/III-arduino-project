@@ -1,3 +1,5 @@
+#include "header.h"
+
 int in_ADC0, in_ADC1;
 int out_DAC0, out_DAC1;
 int POT0, POT1, POT2, POT3;
@@ -9,32 +11,27 @@ int freqShiftArray[maxFreqShift];
 unsigned int selectedFreqShift = 0;
 unsigned int freqShiftCounter = 0;
 
-
 //delay
 #define maxDelay 15000
 int delayArray[maxDelay];
 unsigned int selectedDelay = 0;
 unsigned int delayCounter = 0;
 
-
 #define MAX_DELAY 80
-#define no_samples 8000 
-int   DELAY[MAX_DELAY+2];
-int   Delay2 = 0;
+#define no_samples 8000
+int DELAY[MAX_DELAY + 2];
+int Delay2 = 0;
 float delay_sr = 0;
-int   delay_int = 0;
+int delay_int = 0;
 float frac = 0;
 float Seno_table[no_samples];
-int n,j=0;
- 
- 
-void cria_seno() 
+int n, j = 0;
+
+void cria_seno()
 {
-  for( n=0; n<no_samples; n++) 
-    Seno_table[n] = (0.99 * cos(((2.0*PI)/no_samples)*n));
+	for (n = 0; n < no_samples; n++)
+		Seno_table[n] = (0.99 * cos(((2.0 * PI) / no_samples) * n));
 }
-
-
 
 //c == 0? if value > 0 then return value
 //c == 1? if value < 0 then return -value
@@ -47,7 +44,7 @@ inline int separateValue(int val, int c)
 
 void setup()
 {
-	 cria_seno();
+	cria_seno();
 	/* turn on the timer clock in the power management controller */
 	pmc_set_writeprotect(false);
 	pmc_enable_periph_clk(ID_TC4);
@@ -114,24 +111,6 @@ int processDelay(int value, int delay)
 	delayArray[delayCounter] = (value + delayArray[delayCounter]) >> 1;
 	delayCounter = (delayCounter + 1) % delay;
 	return delayArray[delayCounter];
-}
-
-inline int between(int val, int a, int b)
-{
-	if (val < a)
-		return a;
-	if (val > b)
-		return b;
-	return val;
-}
-
-inline float betweenF(float val, float a, float b)
-{
-	if (val < a)
-		return a;
-	if (val > b)
-		return b;
-	return val;
 }
 
 int processFlanger(int value)
