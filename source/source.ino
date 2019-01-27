@@ -47,11 +47,7 @@ void loop()
 
 	delay_sr = Delay2 - Delay2 * sinf_8k[j * POT1];
 	delay_int = int(delay_sr);
-	frac = delay_sr - delay_int;
-	if (frac = 0)
-		frac = 0.01; // Ajusts
-	if (frac = 1)
-		frac = 0.99; //
+	frac = betweenF(delay_sr - delay_int, 0.01, 0.99);
 
 	j++;
 	if (j * POT1 >= sine_samples)
