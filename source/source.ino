@@ -38,19 +38,19 @@ void loop()
 	POT3 = ADC->ADC_CDR[13];
 
 	POT0 = map(POT0 >> 2, 0, 1024, 1, MAX_DELAY); //depth
-	POT1 = map(POT1 >> 2, 0, 1024, 1, 4); //speed
+	POT1 = map(POT1 >> 2, 0, 1024, 1, 30); //speed
 
 	Delay2 = POT0 / 2;
 	for (int u = 0; u <= POT0; u++)
 		DELAY[POT0 + 1 - u] = DELAY[POT0 - u];
 	DELAY[0] = in_ADC0 - in_ADC1;
 
-	delay_sr = Delay2 - Delay2 * sinf_8k[j * POT1];
+	delay_sr = Delay2 - Delay2 * sinf_8k[j * POT1/15];
 	delay_int = int(delay_sr);
 	frac = betweenF(delay_sr - delay_int, 0.01, 0.99);
 
 	j++;
-	if (j * POT1 >= sine_samples)
+	if (j * POT1 /15>= sine_samples)
 		j = 0;
 
 	value = (DELAY[delay_int + 2] * frac + DELAY[delay_int] * (1 - frac));
