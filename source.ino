@@ -134,10 +134,9 @@ inline float betweenF(float val, float a, float b)
 	return val;
 }
 
-
 int processFlanger(int value)
 {
-	POT0 = map(POT0 >> 2, 0, 1024, 1, 44); //empirical adjusts
+	POT0 = map(POT0 >> 2, 0, 1024, 1, 45); //empirical adjusts
 	Delay2 = POT0 / 2;
 
 	for (int u = 0; u <= POT0; u++)
