@@ -19,7 +19,7 @@ unsigned int delayCounter = 0;
 
 #define MAX_DELAY 80
 #define no_samples 8000 
-int   DELAY[MAX_DELAY+2];
+int   DELAY[MAX_DELAY+2];+
 int   Delay2 = 0;
 float delay_sr = 0;
 int   delay_int = 0;
